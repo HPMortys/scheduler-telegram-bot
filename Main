@@ -1,0 +1,16 @@
+
+Scheduler bot
+
+
+What it can do ?
+1. create scheduled messages
+2. delete created scheduled messages
+3. update scheduled messages
+~~
+4. duplicate scheduled messages
+
+commands
+
+1. start
+2. setScheduler
+3.

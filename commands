@@ -1,0 +1,8 @@
+tasklist | findstr /i <text> - find specific process in Windows
+tasklist | findstr /i celery
+
+taskkill /f /pid <pid> - kill specific process by its id
+taskkill /f /pid 4124
+
+
+celery -A worker --loglevel=INFO -P gevent
