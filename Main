@@ -6,8 +6,8 @@ What it can do ?
 1. create scheduled messages
 2. delete created scheduled messages
 3. update scheduled messages
-~~
 4. duplicate scheduled messages
+5. deactivate, activate, scheduled messages
 
 commands
 
