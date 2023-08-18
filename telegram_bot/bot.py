@@ -6,6 +6,7 @@ from telebot import types
 
 from telegram_bot.constants import BOT_TOKEN
 from db.db_api import Database
+from db.new_db_api import SqlAlchemyDataBaseApi
 from telegram_bot.utils.validation_utils import is_time_format_valid, is_content_input_step_valid
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -84,16 +85,16 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-class ScheduleMessages:
-    def __init__(self, chat_id: int, user_id: int, content: str = None, time: str = None, days: list = None):
+class ScheduledNotification:
+    def __init__(self, chat_id: int, tl_user_id: int, content: str = None, time: str = None, days: list = None):
         self.chat_id: int = chat_id
-        self.user_id: int = user_id
+        self.tl_user_id: int = tl_user_id
         self.content: str = content
         self.time: str = time
         self.days: list = days
 
 
-user_schedule_dict: dict[str, ScheduleMessages] = {}
+user_schedule_dict: dict[str, ScheduledNotification] = {}
 
 
 def send_message(message=None):
@@ -109,10 +110,12 @@ def get_menu_keyboard_markup() -> types.ReplyKeyboardMarkup:
     return markup
 
 
+# TODO: save user
 @bot.message_handler(commands=['start'])
 def start(message):
     message_text: str = messages_templates.get('/start', 'undefined')
     message_data: dict = {'user': message.from_user.username}
+    # TODO: save user
     bot.send_message(message.from_user.id, message_text.format(**message_data), reply_markup=get_menu_keyboard_markup())
 
 
@@ -174,9 +177,9 @@ def process_time_step(message):
     # markup.add('Male', 'Female')
 
     chat_id = message.chat.id
-    user_id = message.from_user.id
-    key: str = str(chat_id) + str(user_id)
-    schedule_message = ScheduleMessages(chat_id, user_id)
+    tl_user_id = message.from_user.id
+    key: str = str(chat_id) + str(tl_user_id)
+    schedule_message = ScheduledNotification(chat_id=chat_id, tl_user_id=tl_user_id)
 
     # TODO: possible data validation
     content = message.text
@@ -193,8 +196,8 @@ def process_time_step(message):
 @cancel_operation_wrapper
 def process_week_days_step(message):
     chat_id = message.chat.id
-    user_id = message.from_user.id
-    key: str = str(chat_id) + str(user_id)
+    tl_user_id = message.from_user.id
+    key: str = str(chat_id) + str(tl_user_id)
 
     # validation
     time = message.text
@@ -238,8 +241,8 @@ def week_days_button_click(call):
     # TODO: rethink saving approach
     if 'DONE' in call.data:
         chat_id = call.message.chat.id
-        user_id = call.from_user.id
-        key: str = str(chat_id) + str(user_id)
+        tl_user_id = call.from_user.id
+        key: str = str(chat_id) + str(tl_user_id)
 
         # validation
         days = []
@@ -277,17 +280,31 @@ def week_days_button_click(call):
 
 def process_data_save_step(call):
     # TODO: Redo
-    # chat_id = message.chat.id
-    # user_id = message.from_user.id
-    # key: str = str(chat_id) + str(user_id)
-    # # TODO: think how to change logic approach
-    # schedule_message = user_schedule_dict[key]
-    # print(schedule_message).
-    # save_schedule_data(schedule_message)
+    chat_id = call.message.chat.id
+    tl_user_id = call.from_user.id
+    key: str = str(chat_id) + str(tl_user_id)
+
+    notification_data: ScheduledNotification = user_schedule_dict[key]
+
+    db_api = SqlAlchemyDataBaseApi()
+
+    user = db_api.get_user_by_tl_id(tl_user_id=notification_data.tl_user_id)
+    if not user:
+        user = db_api.create_user(
+            tl_user_id=tl_user_id,
+            first_name=call.from_user.first_name,
+            last_name=call.from_user.last_name,
+            username=call.from_user.username
+        )
+
+    settings = json.dumps({'week_days': notification_data.days, 'time': notification_data.time})
+    db_api.create_notification(settings=settings, tl_user_id=tl_user_id, user_id=user.id)
+    del db_api
+
     bot.reply_to(call.message, messages_templates['/addSchedule'][3], parse_mode="Markdown")
 
 
-def save_schedule_data(content):
+def save_scheduled_data(content):
     # TODO: Redo
 
     user_data = content['user_data']

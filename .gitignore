@@ -3,3 +3,4 @@ identifier.sqlite
 venv/
 .idea/
 migrations/versions/*
+db/databases.sql

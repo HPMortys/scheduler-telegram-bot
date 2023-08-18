@@ -1,70 +1,68 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import TlUserModel, ScheduledNotificationModel
+from db.models import TlUserModel, ScheduledNotificationModel
 from typing import Optional, List
 from db.constants import NotificationStatus
 from sqlalchemy import or_
 
-engine = create_engine("sqlite:///identifier.sqlite", echo=True)
-Session = sessionmaker(bind=engine)
-session = Session()
-
 
 # Dev notes: TODO: !!! redo: change approach !!!
 class SqlAlchemyDataBaseApi:
-    class BotUsersActions:
 
-        @staticmethod
-        def create_user(tl_user_id: int, first_name: str, second_name: Optional[str] = None):
-            user = TlUserModel(tl_user_id=tl_user_id, first_name=first_name, second_name=second_name)
-            with session:
-                session.add(user)
-                session.commit()
-            return user
+    def __init__(self):
+        engine = create_engine("sqlite:///D:\\IT_projects\\Scheduler\\identifier.sqlite", echo=True)
+        session_obj = sessionmaker(bind=engine)
+        self.session = session_obj()
+        # self.bot_users_actions = self.BotUsersActions(self)
+        # self.scheduled_notifications_actions = self.ScheduledNotificationsActions(self)
 
-        @staticmethod
-        def get_user_by_id(user_id: int) -> Optional[TlUserModel]:
-            with session:
-                return session.query(TlUserModel).get(id=user_id)
+    def create_user(self, tl_user_id: int, first_name: str, username: str, last_name: Optional[str] = None):
+        user = TlUserModel(tl_user_id=tl_user_id, first_name=first_name, username=username, last_name=last_name)
+        self.session.add(user)
+        self.session.commit()
+        return user
 
-        @staticmethod
-        def get_user_by_tl_id(tl_user_id: int) -> Optional[TlUserModel]:
-            with session:
-                return session.query(TlUserModel).get(tl_user_id=tl_user_id)
+    def get_user_by_id(self, user_id: int) -> Optional[TlUserModel]:
+        return self.session.query(TlUserModel).get(user_id)
 
-    # TODO: redo approach
-    class ScheduledNotificationsActions:
+    def get_user_by_tl_id(self, tl_user_id: int) -> Optional[TlUserModel]:
+        return self.session.query(TlUserModel).filter(TlUserModel.tl_user_id == tl_user_id).first()
 
-        @staticmethod
-        def create_notification(settings, tl_user_id, user_id=None, status=NotificationStatus.ACTIVE):
-            if user_id is None:
-                user = SqlAlchemyDataBaseApi.BotUsersActions.get_user_by_tl_id(tl_user_id)
-                user_id = user.id
-            scheduled_notification = ScheduledNotificationModel(settings=settings, tl_user_id=tl_user_id, status=status)
-            scheduled_notification.user = user_id
+    ###
 
-        @staticmethod
-        def get_notification_by_id(notification_id: int) -> Optional[ScheduledNotificationModel]:
-            with session:
-                return session.query(ScheduledNotificationModel).get(id=notification_id)
+    def create_notification(self, settings, tl_user_id, user_id=None, status=NotificationStatus.ACTIVE):
+        scheduled_notification = ScheduledNotificationModel(
+            settings=settings, tl_user_id=tl_user_id,
+            status=status, user_id=user_id
+        )
+        if user_id is None:
+            user = self.get_user_by_tl_id(tl_user_id)
+            scheduled_notification.user_id = user.id
+        self.session.add(scheduled_notification)
+        self.session.commit()
 
-        @staticmethod
-        def get_notification_by_tl_user_id(tl_user_id: int) -> Optional[List[ScheduledNotificationModel]]:
-            notifications = session.query(ScheduledNotificationModel).filter(
-                or_(ScheduledNotificationModel.status == NotificationStatus.ACTIVE,
-                    ScheduledNotificationModel.status == NotificationStatus.PAUSED),
-                tl_user_id=tl_user_id
-            ).all()
-            return notifications
+    def get_notification_by_id(self, notification_id: int) -> Optional[ScheduledNotificationModel]:
+        return self.session.query(ScheduledNotificationModel).get(id=notification_id)
 
-        @staticmethod
-        def archive_notification(notification_id: int):
-            notification = SqlAlchemyDataBaseApi.ScheduledNotificationsActions.get_notification_by_id(notification_id)
-            if notification:
-                with session:
-                    notification.status = NotificationStatus.ARCHIVED
-                    session.commit()
+    def get_notification_by_tl_user_id(self, tl_user_id: int) -> Optional[List[ScheduledNotificationModel]]:
+        notifications = self.session.query(ScheduledNotificationModel).filter(
+            or_(ScheduledNotificationModel.status == NotificationStatus.ACTIVE,
+                ScheduledNotificationModel.status == NotificationStatus.PAUSED),
+            tl_user_id=tl_user_id
+        ).all()
+        return notifications
 
-        @staticmethod
-        def delete_notification(notification_id):
-            pass
+    def archive_notification(self, notification_id: int):
+        notification = self.get_notification_by_id(notification_id)
+        if notification:
+            notification.status = NotificationStatus.ARCHIVED
+            self.session.commit()
+
+    def delete_notification(self, notification_id: int):
+        notification = self.get_notification_by_id(notification_id)
+        if notification:
+            self.session.delete(notification)
+            self.session.commit()
+
+    def __del__(self):
+        self.session.close()
