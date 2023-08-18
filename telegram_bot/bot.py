@@ -11,7 +11,6 @@ from telegram_bot.utils.validation_utils import is_time_format_valid, is_content
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # TODO: delete
-temp_user = 418980357
 
 # ❌
 
@@ -116,6 +115,8 @@ def start(message):
     message_data: dict = {'user': message.from_user.username}
     bot.send_message(message.from_user.id, message_text.format(**message_data), reply_markup=get_menu_keyboard_markup())
 
+
+# TODO: change logic (sqlalchemy usage)
 
 @bot.message_handler(commands=['getSchedule'])
 def getSchedule(message):
@@ -300,6 +301,8 @@ def save_schedule_data(content):
 
     db.insert_row(Database.Tables.scheduler_test, schedule_data)
 
+
+# TODO: add logic
 
 @bot.message_handler(commands=['delEvent'])
 def delete_event_reminder(message):

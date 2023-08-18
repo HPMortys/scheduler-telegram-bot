@@ -1,3 +1,5 @@
+# TODO: Redo
+
 class Commands:
     start = 'start'
     help = 'help'

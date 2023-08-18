@@ -1,3 +1,5 @@
 temp.py
+identifier.sqlite
 venv/
 .idea/
+migrations/versions/*

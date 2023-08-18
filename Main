@@ -1,5 +1,5 @@
 
-Scheduler bot
+Scheduler Notification bot
 
 
 What it can do ?
@@ -11,6 +11,24 @@ What it can do ?
 
 commands
 
-1. start
-2. setScheduler
-3.
+
+
+SETUP:
+
+
+
+DB setup:
+alembic / sqlalchemy
+
+1) Change db at alembic.ini
+
+sqlalchemy.url = sqlite:///identifier.sqlite
+
+2) database migration commands
+
+1. Create migration file
+alembic revision --autogenerate -m "your_migration_text"
+2. Apply changes to db
+alembic upgrade heads
+
+
