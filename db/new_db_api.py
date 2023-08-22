@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db.models import TlUserModel, ScheduledNotificationModel
-from typing import Optional, List
+from typing import Optional, List, Literal
 from db.constants import NotificationStatus
 from sqlalchemy import or_
 
@@ -30,7 +30,7 @@ class SqlAlchemyDataBaseApi:
 
     ###
 
-    def create_notification(self, settings, tl_user_id, user_id=None, status=NotificationStatus.ACTIVE):
+    def create_notification(self, settings, tl_user_id, user_id=None, status=NotificationStatus.ACTIVE.value):
         scheduled_notification = ScheduledNotificationModel(
             settings=settings, tl_user_id=tl_user_id,
             status=status, user_id=user_id
@@ -42,20 +42,23 @@ class SqlAlchemyDataBaseApi:
         self.session.commit()
 
     def get_notification_by_id(self, notification_id: int) -> Optional[ScheduledNotificationModel]:
-        return self.session.query(ScheduledNotificationModel).get(id=notification_id)
+        return self.session.query(ScheduledNotificationModel).get(notification_id)
 
     def get_notification_by_tl_user_id(self, tl_user_id: int) -> Optional[List[ScheduledNotificationModel]]:
         notifications = self.session.query(ScheduledNotificationModel).filter(
             or_(ScheduledNotificationModel.status == NotificationStatus.ACTIVE,
                 ScheduledNotificationModel.status == NotificationStatus.PAUSED),
-            tl_user_id=tl_user_id
+            ScheduledNotificationModel.tl_user_id == tl_user_id
         ).all()
         return notifications
 
     def archive_notification(self, notification_id: int):
+        self.change_notification_status(notification_id, NotificationStatus.ARCHIVED.value)
+
+    def change_notification_status(self, notification_id: int, status: NotificationStatus | str):
         notification = self.get_notification_by_id(notification_id)
         if notification:
-            notification.status = NotificationStatus.ARCHIVED
+            notification.status = status
             self.session.commit()
 
     def delete_notification(self, notification_id: int):

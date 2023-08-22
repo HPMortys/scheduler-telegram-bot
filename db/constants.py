@@ -6,6 +6,6 @@ DB_FILE = get_environ_var_value("", default="D:\\IT_projects\\Scheduler\\identif
 
 
 class NotificationStatus(enum.Enum):
-    ACTIVE = "active"
-    PAUSED = "paused"
-    ARCHIVED = "archived"
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    ARCHIVED = "ARCHIVED"
