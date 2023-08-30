@@ -11,8 +11,6 @@ task_routes = {
 beat_schedule = {
     'test_scheduler': {
         'task': 'celery_tasks.scheduler_task',
-        'schedule': 31.0
-        # 'args': (),
-        # 'kwargs': {'wait_time': 10}
+        'schedule': 29.0
     }
 }

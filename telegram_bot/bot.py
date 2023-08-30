@@ -1,4 +1,3 @@
-import logging
 import json
 
 import telebot
@@ -9,29 +8,26 @@ from db.db_api import Database
 from db.new_db_api import SqlAlchemyDataBaseApi
 from db.constants import NotificationStatus
 from db.models import ScheduledNotificationModel
-from telegram_bot.utils.validation_utils import is_time_format_valid, is_content_input_step_valid
+from telegram_bot.utils import is_time_format_valid, is_content_input_step_valid
 from utils_general.utils import week_data_data_transform
+from utils_general.exceptions import UnknownBotException
 
-bot = telebot.TeleBot(BOT_TOKEN)
-
-# TODO: delete
-
-# ❌
+bot: telebot.TeleBot = telebot.TeleBot(BOT_TOKEN)
 
 messages_templates = \
     {
         '/start':
-        '''
---- BOT IS UNDER MAINTENANCE ---
-Hey {user}, welcome to scheduler bot.
-
-Bot allows to create scheduled notifications. 
-Use following commands to interact with bot.
- 
-/addSchedule - to add new scheduled notification 
-/statusSchedule - to update, delete, pause or activate your scheduled notifications
-/getSchedule - to show your notification (temporary)
-        ''',
+            '''
+    --- BOT IS UNDER MAINTENANCE ---
+    Hey {user}, welcome to scheduler bot.
+    
+    Bot allows to create scheduled notifications. 
+    Use following commands to interact with bot.
+     
+    /addSchedule - to add new scheduled notification 
+    /statusSchedule - to update, delete, pause or activate your scheduled notifications
+    /getSchedule - to show your notification (temporary)
+            ''',
         '/help':
             '''
         
@@ -75,15 +71,6 @@ class ButtonsText:
     CANCEL_BUTTON_TEXT: str = '❌ Cancel'
 
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(filemode='w', filename='app.log')
-
-handler = logging.StreamHandler()
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-
 class ScheduledNotification:
     def __init__(self, chat_id: int, tl_user_id: int, content: str = None, time: str = None, days: list = None):
         self.chat_id: int = chat_id
@@ -97,6 +84,23 @@ user_schedule_dict: dict[str, ScheduledNotification] = {}
 user_notification_data: dict[str, list] = {}
 
 
+# TODO: temp approach
+def bot_exception_wrapper(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except UnknownBotException as e:
+            for msg in args:
+                if isinstance(msg, types.Message):
+                    bot.send_message(msg.from_user.id, str(e))
+
+    return wrapper
+
+
+def send_message_to_user(tl_user_id: int, message: str):
+    bot.send_message(tl_user_id, message)
+
+
 def get_menu_keyboard_markup() -> types.ReplyKeyboardMarkup:
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton(ButtonsText.ADD_SCHEDULED_NOTIFICATION)
@@ -107,6 +111,7 @@ def get_menu_keyboard_markup() -> types.ReplyKeyboardMarkup:
 
 # TODO: save user
 @bot.message_handler(commands=['start', 'help', 'info'])
+@bot_exception_wrapper
 def start(message):
     message_text: str = messages_templates.get('/start', 'undefined')
     message_data: dict = {'user': message.from_user.username}
@@ -116,6 +121,7 @@ def start(message):
 
 # TODO: mb delete
 @bot.message_handler(commands=['getSchedule'])
+@bot_exception_wrapper
 def getSchedule(message):
     message_text: str = messages_templates.get('/getSchedule', 'undefined')
     message_data: dict = {}
@@ -127,23 +133,14 @@ def getSchedule(message):
 
     processed_data = ''
     for idx, notification_data in enumerate(user_scheduled_data):
-        settings_data: dict = json.loads(notification_data.settings)
-        week_days_data: list = week_data_data_transform(settings_data.get('week_days', ''))
-        processed_data += f"\n ***[#{idx}] - status: {notification_data.status}*** \n{settings_data.get('content', '')}\n\n" \
-                          f"> {settings_data.get('time', '')}\n" \
-                          f" {', '.join(week_days_data)}\n" + '=' * 10 + '\n\n'
+        processed_data += get_str_notification_data(notification_data, idx)
 
     message_data['schedule'] = processed_data
     bot.send_message(message.from_user.id, message_text.format(**message_data), parse_mode="Markdown")
 
 
-def get_schedules(tl_user_id):
-    db = Database()
-    schedules = db.select_rows(table_name=Database.Tables.scheduler_test, where={'tl_user_id': tl_user_id})
-    return schedules
-
-
 @bot.message_handler(commands=['addSchedule'])
+@bot_exception_wrapper
 def addSchedule(message):
     message_text = messages_templates.get('/addSchedule', 'undefined')
     message_data: dict = {}
@@ -395,11 +392,13 @@ def notification_choosing_button_callback(call):
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
         text=next_notification_data['content'],
-        reply_markup=get_notification_status_change_markup(next_notification_data['notification_id'], new_notification_idx),
+        reply_markup=get_notification_status_change_markup(next_notification_data['notification_id'],
+                                                           new_notification_idx),
         parse_mode="Markdown")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("change_status:"))
+@bot_exception_wrapper
 def change_notification_status_button_callback(call):
     selected_status_data: list[str] = call.data.replace('change_status:', '').split(',')
     selected_status: str = selected_status_data[0]
@@ -417,6 +416,7 @@ def change_notification_status_button_callback(call):
 
 
 @bot.message_handler(content_types=['text'])
+@bot_exception_wrapper
 def menu_button_func(message):
     if message.text == ButtonsText.ADD_SCHEDULED_NOTIFICATION:
         addSchedule(message)
@@ -428,4 +428,9 @@ def menu_button_func(message):
 
 if __name__ == '__main__':
     logger.info('Start')
-    bot.polling(none_stop=True, interval=0)
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=0)
+        except UnknownBotException as e:
+            logger.error(f'An exception occured in the polling loop: {e}')
+            break

@@ -25,10 +25,19 @@ alembic / sqlalchemy
 sqlalchemy.url = sqlite:///identifier.sqlite
 
 2) database migration commands
-
+alembic init alembic
 1. Create migration file
 alembic revision --autogenerate -m "your_migration_text"
 2. Apply changes to db
 alembic upgrade heads
 
 
+Future possible tech engaging:
+Flake8 and black
+
+
+Celery:
+Run workers
+1)
+Run ce
+2)

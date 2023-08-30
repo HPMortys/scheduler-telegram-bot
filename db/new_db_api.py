@@ -1,16 +1,16 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
-from db.models import TlUserModel, ScheduledNotificationModel
 from typing import Optional, List, Literal
-from db.constants import NotificationStatus
-from sqlalchemy import or_
+
+from db.models import TlUserModel, ScheduledNotificationModel
+from db.constants import DB_FILE, NotificationStatus
 
 
 # Dev notes: TODO: !!! redo: change approach !!!
 class SqlAlchemyDataBaseApi:
 
     def __init__(self):
-        engine = create_engine("sqlite:///D:\\IT_projects\\Scheduler\\identifier.sqlite", echo=True)
+        engine = create_engine(f"sqlite:///..\\{DB_FILE}", echo=True)
         session_obj = sessionmaker(bind=engine)
         self.session = session_obj()
         # self.bot_users_actions = self.BotUsersActions(self)
@@ -41,13 +41,17 @@ class SqlAlchemyDataBaseApi:
         self.session.add(scheduled_notification)
         self.session.commit()
 
+    def get_all_notifications(self) -> list[ScheduledNotificationModel]:
+        return self.session.query(ScheduledNotificationModel).filter(
+            ScheduledNotificationModel.status == NotificationStatus.ACTIVE.value)
+
     def get_notification_by_id(self, notification_id: int) -> Optional[ScheduledNotificationModel]:
         return self.session.query(ScheduledNotificationModel).get(notification_id)
 
     def get_notification_by_tl_user_id(self, tl_user_id: int) -> Optional[List[ScheduledNotificationModel]]:
         notifications = self.session.query(ScheduledNotificationModel).filter(
-            or_(ScheduledNotificationModel.status == NotificationStatus.ACTIVE,
-                ScheduledNotificationModel.status == NotificationStatus.PAUSED),
+            or_(ScheduledNotificationModel.status == NotificationStatus.ACTIVE.value,
+                ScheduledNotificationModel.status == NotificationStatus.PAUSED.value),
             ScheduledNotificationModel.tl_user_id == tl_user_id
         ).all()
         return notifications

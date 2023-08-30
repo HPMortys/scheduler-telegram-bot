@@ -1,1 +1,1 @@
-DEBUG = True
+BROKER = 'amqp://guest@localhost/'

@@ -1,28 +1,41 @@
+import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 from celery import Celery
 from datetime import datetime
-import json
 
-from db.db_api import Database
+from constants import BROKER
+from db.new_db_api import SqlAlchemyDataBaseApi
+from db.models import ScheduledNotificationModel
 
 from telegram_bot.bot import send_message_to_user
 
 app = Celery('hello', broker='amqp://guest@localhost/')
 app.config_from_object('celeryconfig')
+app.autodiscover_tasks()
+
+max_workers: int = os.cpu_count() * 2
 
 
-def get_schedules():
-    db = Database()
-    schedules = db.select_rows(table_name=Database.Tables.scheduler_test)
-    return schedules
-
-
-@app.task(ignore_result=True)
+@app.task(ignore_result=True, expires=900)
 def scheduler_task():
-    now = datetime.now().time().strftime("%H:%M")
-    schedules = get_schedules()
+    db = SqlAlchemyDataBaseApi()
+    active_notifications = db.get_all_notifications()
 
-    for schedule in schedules:
-        tl_user_id = schedule[1]
-        schedule_data = json.loads(schedule[2])
-        if schedule_data['time'] == now:
-            send_message_to_user(tl_user_id=tl_user_id, message=schedule_data['content'])
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        executor.map(send_notification_check, active_notifications)
+    return active_notifications
+
+
+def send_notification_check(notification: ScheduledNotificationModel):
+    now = datetime.now(tz=None)
+    current_time = now.time().strftime("%H:%M")
+    current_day = now.weekday()
+    tl_user_id = notification.tl_user_id
+    schedule_data = json.loads(notification.settings)
+    print(schedule_data)
+    if schedule_data['time'] == current_time and current_day in schedule_data['week_days']:
+        send_message_to_user(tl_user_id=tl_user_id, message=schedule_data['content'])
+
+
+app.send_task('celery_tasks.scheduler_task')

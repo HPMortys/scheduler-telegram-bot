@@ -5,4 +5,7 @@ taskkill /f /pid <pid> - kill specific process by its id
 taskkill /f /pid 4124
 
 
-celery -A worker --loglevel=INFO -P gevent
+http://localhost:15672/#/
+celery -A celery_tasks worker -P gevent --loglevel=INFO
+celery -A celery_tasks beat
+
