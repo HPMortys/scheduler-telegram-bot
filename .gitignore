@@ -171,8 +171,8 @@ migrations/
 db/databases.sql
 db/__pycache__/
 telegram_bot/app.log
-scheduler/celerybeat-schedule.bak
-scheduler/celerybeat-schedule.dir
-scheduler/celerybeat-schedule.dat
+celerybeat-schedule.bak
+celerybeat-schedule.dir
+celerybeat-schedule.dat
 alembic.ini
 app.log
