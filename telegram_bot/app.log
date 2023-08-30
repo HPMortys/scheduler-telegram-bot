@@ -1,9 +1,0 @@
-INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
-INFO:sqlalchemy.engine.Engine:SELECT users_notifier_bot_table.id AS users_notifier_bot_table_id, users_notifier_bot_table.tl_user_id AS users_notifier_bot_table_tl_user_id, users_notifier_bot_table.first_name AS users_notifier_bot_table_first_name, users_notifier_bot_table.username AS users_notifier_bot_table_username, users_notifier_bot_table.last_name AS users_notifier_bot_table_last_name, users_notifier_bot_table.date_create AS users_notifier_bot_table_date_create 
-FROM users_notifier_bot_table 
-WHERE users_notifier_bot_table.tl_user_id = ?
- LIMIT ? OFFSET ?
-INFO:sqlalchemy.engine.Engine:[generated in 0.00026s] (418980357, 1, 0)
-INFO:sqlalchemy.engine.Engine:INSERT INTO scheduled_notifications_table (settings, tl_user_id, user_id, status, date_create) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id, date_create
-INFO:sqlalchemy.engine.Engine:[generated in 0.00080s] ('"{\\"week_days\\": [4], \\"time\\": \\"13:34\\"}"', 418980357, 1, 'ACTIVE')
-INFO:sqlalchemy.engine.Engine:COMMIT
