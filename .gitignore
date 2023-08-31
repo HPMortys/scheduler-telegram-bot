@@ -170,6 +170,7 @@ identifier.sqlite
 migrations/
 db/databases.sql
 db/__pycache__/
+*/__pycache__/
 telegram_bot/app.log
 celerybeat-schedule.bak
 celerybeat-schedule.dir
