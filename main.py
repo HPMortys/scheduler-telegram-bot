@@ -1,6 +1,6 @@
 from logger.logger_config import logger
 
-from telegram_bot import bot
+from telegram_bot.bot import bot
 from utils_general.exceptions import UnknownBotException
 
 
