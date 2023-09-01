@@ -10,7 +10,7 @@ from db.constants import DB_FILE, NotificationStatus
 class SqlAlchemyDataBaseApi:
 
     def __init__(self):
-        engine = create_engine(f"sqlite:///..\\{DB_FILE}", echo=True)
+        engine = create_engine(f"sqlite:///identifier.sqlite", echo=True)
         session_obj = sessionmaker(bind=engine)
         self.session = session_obj()
         # self.bot_users_actions = self.BotUsersActions(self)

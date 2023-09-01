@@ -8,7 +8,7 @@ from constants import BROKER
 from db.new_db_api import SqlAlchemyDataBaseApi
 from db.models import ScheduledNotificationModel
 
-from telegram_bot.bot import send_message_to_user
+from telegram_bot.bot import bot
 
 app = Celery('hello', broker='amqp://guest@localhost/')
 app.config_from_object('celeryconfig')
@@ -34,8 +34,8 @@ def send_notification_check(notification: ScheduledNotificationModel):
     tl_user_id = notification.tl_user_id
     schedule_data = json.loads(notification.settings)
     print(schedule_data)
+    print(schedule_data['time'] == current_time and current_day in schedule_data['week_days'])
     if schedule_data['time'] == current_time and current_day in schedule_data['week_days']:
-        send_message_to_user(tl_user_id=tl_user_id, message=schedule_data['content'])
-
-
+        print('YES')
+        bot.send_message(int(tl_user_id), schedule_data['content'])
 app.send_task('celery_tasks.scheduler_task')
